@@ -286,6 +286,7 @@ export interface GraphConfig {
 	readonly style: GraphStyle;
 	readonly grid: { x: number, y: number, offsetX: number, offsetY: number, expandY: number };
 	readonly uncommittedChanges: GraphUncommittedChangesStyle;
+	readonly branchColumnOrder: ReadonlyArray<string>;
 }
 
 export interface KeybindingConfig {
@@ -368,6 +369,7 @@ export interface ContextMenuActionsVisibility {
 		readonly reset: boolean;
 		readonly copyHash: boolean;
 		readonly copySubject: boolean;
+		readonly amendCommit: boolean;
 	};
 	readonly commitDetailsViewFile: {
 		readonly viewDiff: boolean;
@@ -594,6 +596,15 @@ export interface RequestAddRemote extends RepoRequest {
 }
 export interface ResponseAddRemote extends ResponseWithErrorInfo {
 	readonly command: 'addRemote';
+}
+
+export interface RequestAmendCommit extends RepoRequest {
+	readonly command: 'amendCommit';
+	readonly commitHash: string;
+	readonly message: string;
+}
+export interface ResponseAmendCommit extends ResponseWithErrorInfo {
+	readonly command: 'amendCommit';
 }
 
 export interface RequestAddTag extends RepoRequest {
@@ -1249,6 +1260,7 @@ export interface ResponseViewScm extends ResponseWithErrorInfo {
 
 export type RequestMessage =
 	RequestAddRemote
+	| RequestAmendCommit
 	| RequestAddTag
 	| RequestApplyStash
 	| RequestBranchFromStash
@@ -1313,6 +1325,7 @@ export type RequestMessage =
 
 export type ResponseMessage =
 	ResponseAddRemote
+	| ResponseAmendCommit
 	| ResponseAddTag
 	| ResponseApplyStash
 	| ResponseBranchFromStash

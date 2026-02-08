@@ -1217,6 +1217,24 @@ class GitGraphView {
 						runAction({ command: 'resetToCommit', repo: this.currentRepo, commit: hash, resetMode: <GG.GitResetMode>mode }, 'Resetting to Commit');
 					}, target);
 				}
+			}, {
+				title: 'Edit Commit Message' + ELLIPSIS,
+				visible: visibility.amendCommit && hash === this.commitHead,
+				onClick: () => {
+					dialog.showForm('Edit the commit message for <b><i>' + abbrevCommit(hash) + '</i></b>:', [{
+						type: DialogInputType.Text,
+						name: 'Message',
+						default: commit.message,
+						placeholder: 'Commit message'
+					}], 'Amend', (values) => {
+						runAction({
+							command: 'amendCommit',
+							repo: this.currentRepo,
+							commitHash: hash,
+							message: <string>values[0]
+						}, 'Amending Commit Message');
+					}, target);
+				}
 			}
 		], [
 			{
@@ -3194,6 +3212,9 @@ window.addEventListener('load', () => {
 		switch (msg.command) {
 			case 'addRemote':
 				refreshOrDisplayError(msg.error, 'Unable to Add Remote', true);
+				break;
+			case 'amendCommit':
+				refreshOrDisplayError(msg.error, 'Unable to Amend Commit Message');
 				break;
 			case 'addTag':
 				if (msg.pushToRemote !== null && msg.errors.length === 2 && msg.errors[0] === null && isExtensionErrorInfo(msg.errors[1], GG.ErrorInfoExtensionPrefix.PushTagCommitNotOnRemote)) {

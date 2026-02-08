@@ -82,7 +82,7 @@ class Config {
 		const userConfig = this.config.get('contextMenuActionsVisibility', {});
 		const config: ContextMenuActionsVisibility = {
 			branch: { checkout: true, rename: true, delete: true, merge: true, rebase: true, push: true, viewIssue: true, createPullRequest: true, createArchive: true, selectInBranchesDropdown: true, unselectInBranchesDropdown: true, copyName: true },
-			commit: { addTag: true, createBranch: true, checkout: true, cherrypick: true, revert: true, drop: true, merge: true, rebase: true, reset: true, copyHash: true, copySubject: true },
+			commit: { addTag: true, createBranch: true, checkout: true, cherrypick: true, revert: true, drop: true, merge: true, rebase: true, reset: true, copyHash: true, copySubject: true, amendCommit: true },
 			commitDetailsViewFile: { viewDiff: true, viewFileAtThisRevision: true, viewDiffWithWorkingFile: true, openFile: true, markAsReviewed: true, markAsNotReviewed: true, resetFileToThisRevision: true, copyAbsoluteFilePath: true, copyRelativeFilePath: true },
 			remoteBranch: { checkout: true, delete: true, fetch: true, merge: true, pull: true, viewIssue: true, createPullRequest: true, createArchive: true, selectInBranchesDropdown: true, unselectInBranchesDropdown: true, copyName: true },
 			stash: { apply: true, createBranch: true, pop: true, drop: true, copyName: true, copyHash: true },
@@ -91,6 +91,16 @@ class Config {
 		};
 		mergeConfigObjects(config, userConfig);
 		return config;
+	}
+
+	/**
+	 * Get the value of the `git-graph.branchColumnOrder` Extension Setting.
+	 */
+	get branchColumnOrder(): string[] {
+		const patterns = this.config.get<string[]>('branchColumnOrder', []);
+		return Array.isArray(patterns)
+			? patterns.filter((p) => typeof p === 'string')
+			: [];
 	}
 
 	/**
@@ -279,7 +289,8 @@ class Config {
 			grid: { x: 16, y: 24, offsetX: 16, offsetY: 12, expandY: 250 },
 			uncommittedChanges: this.config.get<string>('graph.uncommittedChanges', 'Open Circle at the Uncommitted Changes') === 'Open Circle at the Checked Out Commit'
 				? GraphUncommittedChangesStyle.OpenCircleAtTheCheckedOutCommit
-				: GraphUncommittedChangesStyle.OpenCircleAtTheUncommittedChanges
+				: GraphUncommittedChangesStyle.OpenCircleAtTheUncommittedChanges,
+			branchColumnOrder: this.branchColumnOrder
 		};
 	}
 

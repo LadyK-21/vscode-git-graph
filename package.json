@@ -241,6 +241,10 @@
 								"copySubject": {
 									"type": "boolean",
 									"title": "Copy Commit Subject to Clipboard"
+								},
+								"amendCommit": {
+									"type": "boolean",
+									"title": "Edit Commit Message (HEAD only)"
 								}
 							}
 						},
@@ -412,7 +416,15 @@
 					},
 					"markdownDescription": "Customise which context menu actions are visible. For example, if you want to hide the rebase action from the branch context menu, a suitable value for this setting is `{ \"branch\": { \"rebase\": false } }`. For more information of how to configure this setting, view the documentation [here](https://github.com/mhutchie/vscode-git-graph/wiki/Extension-Settings#context-menu-actions-visibility)."
 				},
-				"git-graph.customBranchGlobPatterns": {
+				"git-graph.branchColumnOrder": {
+				"type": "array",
+				"items": {
+					"type": "string"
+				},
+				"default": [],
+				"description": "Priority order for branch columns in the graph. Branches matching earlier patterns get leftmost columns. Supports glob patterns (e.g. [\"main\", \"develop\", \"feature/*\", \"release/*\"]). Unmatched branches appear after matched ones."
+			},
+			"git-graph.customBranchGlobPatterns": {
 					"type": "array",
 					"items": {
 						"type": "object",

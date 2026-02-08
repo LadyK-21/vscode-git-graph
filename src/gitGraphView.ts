@@ -178,6 +178,12 @@ export class GitGraphView extends Disposable {
 					error: await this.dataSource.addRemote(msg.repo, msg.name, msg.url, msg.pushUrl, msg.fetch)
 				});
 				break;
+			case 'amendCommit':
+				this.sendMessage({
+					command: 'amendCommit',
+					error: await this.dataSource.amendCommitMessage(msg.repo, msg.message)
+				});
+				break;
 			case 'addTag':
 				errorInfos = [await this.dataSource.addTag(msg.repo, msg.tagName, msg.commitHash, msg.type, msg.message, msg.force)];
 				if (errorInfos[0] === null && msg.pushToRemote !== null) {
