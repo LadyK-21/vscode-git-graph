@@ -3214,4 +3214,89 @@ describe('Config', () => {
 			});
 		};
 	}
+
+	describe('azureDevOpsUrl', () => {
+		it('Should return the configured value', () => {
+			// Setup
+			vscode.mockExtensionSettingReturnValue('azureDevops.url', 'https://dev.azure.com/myorg/myproject');
+
+			// Run
+			const value = config.azureDevOpsUrl;
+
+			// Assert
+			expect(value).toBe('https://dev.azure.com/myorg/myproject');
+		});
+
+		it('Should return the default value (empty string)', () => {
+			// Run
+			const value = config.azureDevOpsUrl;
+
+			// Assert
+			expect(value).toBe('');
+		});
+	});
+
+	describe('azureDevOpsAccessToken', () => {
+		it('Should return the configured value', () => {
+			// Setup
+			vscode.mockExtensionSettingReturnValue('azureDevops.accessToken', 'my-pat-token');
+
+			// Run
+			const value = config.azureDevOpsAccessToken;
+
+			// Assert
+			expect(value).toBe('my-pat-token');
+		});
+
+		it('Should return the default value (empty string)', () => {
+			// Run
+			const value = config.azureDevOpsAccessToken;
+
+			// Assert
+			expect(value).toBe('');
+		});
+	});
+
+	describe('azureDevOpsClosedStates', () => {
+		it('Should return the configured value', () => {
+			// Setup
+			vscode.mockExtensionSettingReturnValue('azureDevops.closedStates', ['Done', 'Resolved']);
+
+			// Run
+			const value = config.azureDevOpsClosedStates;
+
+			// Assert
+			expect(value).toStrictEqual(['Done', 'Resolved']);
+		});
+
+		it('Should return the default value', () => {
+			// Run
+			const value = config.azureDevOpsClosedStates;
+
+			// Assert
+			expect(value).toStrictEqual(['Done', 'Closed', 'Removed']);
+		});
+
+		it('Should filter out non-string values', () => {
+			// Setup
+			vscode.mockExtensionSettingReturnValue('azureDevops.closedStates', ['Done', 123, 'Closed']);
+
+			// Run
+			const value = config.azureDevOpsClosedStates;
+
+			// Assert
+			expect(value).toStrictEqual(['Done', 'Closed']);
+		});
+
+		it('Should return the default value when not an array', () => {
+			// Setup
+			vscode.mockExtensionSettingReturnValue('azureDevops.closedStates', 'invalid');
+
+			// Run
+			const value = config.azureDevOpsClosedStates;
+
+			// Assert
+			expect(value).toStrictEqual(['Done', 'Closed', 'Removed']);
+		});
+	});
 });

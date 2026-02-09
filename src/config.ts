@@ -60,6 +60,28 @@ class Config {
 	}
 
 	/**
+	 * Get the value of the `git-graph.azureDevops.url` Extension Setting.
+	 */
+	get azureDevOpsUrl(): string {
+		return this.config.get<string>('azureDevops.url', '');
+	}
+
+	/**
+	 * Get the value of the `git-graph.azureDevops.accessToken` Extension Setting.
+	 */
+	get azureDevOpsAccessToken(): string {
+		return this.config.get<string>('azureDevops.accessToken', '');
+	}
+
+	/**
+	 * Get the value of the `git-graph.azureDevops.closedStates` Extension Setting.
+	 */
+	get azureDevOpsClosedStates(): string[] {
+		const states = this.config.get<string[]>('azureDevops.closedStates', ['Done', 'Closed', 'Removed']);
+		return Array.isArray(states) ? states.filter((s) => typeof s === 'string') : ['Done', 'Closed', 'Removed'];
+	}
+
+	/**
 	 * Get the Commit Details View configuration from the Extension Settings.
 	 */
 	get commitDetailsView(): CommitDetailsViewConfig {

@@ -231,7 +231,20 @@ export interface GitGraphViewInitialState {
 	readonly loadCommitsRefreshId: number;
 }
 
+export interface AzureDevOpsConfig {
+	readonly enabled: boolean;
+	readonly closedStates: ReadonlyArray<string>;
+}
+
+export interface AzureDevOpsWorkItem {
+	readonly id: number;
+	readonly title: string;
+	readonly type: string;
+	readonly state: string;
+}
+
 export interface GitGraphViewConfig {
+	readonly azureDevOps: AzureDevOpsConfig;
 	readonly commitDetailsView: CommitDetailsViewConfig;
 	readonly commitOrdering: CommitOrdering;
 	readonly contextMenuActionsVisibility: ContextMenuActionsVisibility;
@@ -1258,6 +1271,27 @@ export interface ResponseViewScm extends ResponseWithErrorInfo {
 	readonly command: 'viewScm';
 }
 
+export interface RequestGetAzureDevOpsWorkItems extends RepoRequest {
+	readonly command: 'getAzureDevOpsWorkItems';
+	readonly assignedToMe: boolean;
+}
+export interface ResponseGetAzureDevOpsWorkItems extends BaseMessage {
+	readonly command: 'getAzureDevOpsWorkItems';
+	readonly items: ReadonlyArray<AzureDevOpsWorkItem>;
+	readonly error: ErrorInfo;
+}
+
+export interface RequestSearchAzureDevOpsWorkItems extends RepoRequest {
+	readonly command: 'searchAzureDevOpsWorkItems';
+	readonly query: string;
+	readonly assignedToMe: boolean;
+}
+export interface ResponseSearchAzureDevOpsWorkItems extends BaseMessage {
+	readonly command: 'searchAzureDevOpsWorkItems';
+	readonly items: ReadonlyArray<AzureDevOpsWorkItem>;
+	readonly error: ErrorInfo;
+}
+
 export type RequestMessage =
 	RequestAddRemote
 	| RequestAmendCommit
@@ -1321,7 +1355,9 @@ export type RequestMessage =
 	| RequestViewDiff
 	| RequestViewDiffWithWorkingFile
 	| RequestViewFileAtRevision
-	| RequestViewScm;
+	| RequestViewScm
+	| RequestGetAzureDevOpsWorkItems
+	| RequestSearchAzureDevOpsWorkItems;
 
 export type ResponseMessage =
 	ResponseAddRemote
@@ -1383,7 +1419,9 @@ export type ResponseMessage =
 	| ResponseViewDiff
 	| ResponseViewDiffWithWorkingFile
 	| ResponseViewFileAtRevision
-	| ResponseViewScm;
+	| ResponseViewScm
+	| ResponseGetAzureDevOpsWorkItems
+	| ResponseSearchAzureDevOpsWorkItems;
 
 
 /** Helper Types */

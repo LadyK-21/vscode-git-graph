@@ -3518,6 +3518,51 @@ describe('GitGraphView', () => {
 				});
 			});
 		});
+
+		describe('getAzureDevOpsWorkItems', () => {
+			it('Should return an error when Azure DevOps is not configured', async () => {
+				// Run
+				onDidReceiveMessage({
+					command: 'getAzureDevOpsWorkItems',
+					repo: '/path/to/repo',
+					assignedToMe: true
+				});
+
+				// Assert
+				await waitForExpect(() => {
+					expect(messages).toStrictEqual([
+						{
+							command: 'getAzureDevOpsWorkItems',
+							items: [],
+							error: 'Azure DevOps URL and Access Token must be configured.'
+						}
+					]);
+				});
+			});
+		});
+
+		describe('searchAzureDevOpsWorkItems', () => {
+			it('Should return an error when Azure DevOps is not configured', async () => {
+				// Run
+				onDidReceiveMessage({
+					command: 'searchAzureDevOpsWorkItems',
+					repo: '/path/to/repo',
+					query: 'test',
+					assignedToMe: true
+				});
+
+				// Assert
+				await waitForExpect(() => {
+					expect(messages).toStrictEqual([
+						{
+							command: 'searchAzureDevOpsWorkItems',
+							items: [],
+							error: 'Azure DevOps URL and Access Token must be configured.'
+						}
+					]);
+				});
+			});
+		});
 	});
 
 	describe('sendMessage', () => {

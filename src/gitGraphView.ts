@@ -1,3 +1,4 @@
+import * as https from 'https';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { AvatarManager } from './avatarManager';
@@ -7,7 +8,7 @@ import { ExtensionState } from './extensionState';
 import { Logger } from './logger';
 import { RepoFileWatcher } from './repoFileWatcher';
 import { RepoManager } from './repoManager';
-import { ErrorInfo, GitConfigLocation, GitGraphViewInitialState, GitPushBranchMode, GitRepoSet, LoadGitGraphViewTo, RequestMessage, ResponseMessage, TabIconColourTheme } from './types';
+import { AzureDevOpsWorkItem, ErrorInfo, GitConfigLocation, GitGraphViewInitialState, GitPushBranchMode, GitRepoSet, LoadGitGraphViewTo, RequestMessage, ResponseMessage, TabIconColourTheme } from './types';
 import { UNABLE_TO_FIND_GIT_MSG, UNCOMMITTED, archive, copyFilePathToClipboard, copyToClipboard, createPullRequest, getNonce, openExtensionSettings, openExternalUrl, openFile, showErrorMessage, viewDiff, viewDiffWithWorkingFile, viewFileAtRevision, viewScm } from './utils';
 import { Disposable, toDisposable } from './utils/disposable';
 
@@ -630,6 +631,22 @@ export class GitGraphView extends Disposable {
 					error: await viewScm()
 				});
 				break;
+			case 'getAzureDevOpsWorkItems':
+				try {
+					const items = await this.getAzureDevOpsWorkItems(undefined, msg.assignedToMe);
+					this.sendMessage({ command: 'getAzureDevOpsWorkItems', items: items, error: null });
+				} catch (e) {
+					this.sendMessage({ command: 'getAzureDevOpsWorkItems', items: [], error: e instanceof Error ? e.message : 'Unknown error' });
+				}
+				break;
+			case 'searchAzureDevOpsWorkItems':
+				try {
+					const items = await this.getAzureDevOpsWorkItems(msg.query, msg.assignedToMe);
+					this.sendMessage({ command: 'searchAzureDevOpsWorkItems', items: items, error: null });
+				} catch (e) {
+					this.sendMessage({ command: 'searchAzureDevOpsWorkItems', items: [], error: e instanceof Error ? e.message : 'Unknown error' });
+				}
+				break;
 		}
 
 		this.repoFileWatcher.unmute();
@@ -671,6 +688,10 @@ export class GitGraphView extends Disposable {
 		const config = getConfig(), nonce = getNonce();
 		const initialState: GitGraphViewInitialState = {
 			config: {
+				azureDevOps: {
+					enabled: config.azureDevOpsUrl !== '' && config.azureDevOpsAccessToken !== '',
+					closedStates: config.azureDevOpsClosedStates
+				},
 				commitDetailsView: config.commitDetailsView,
 				commitOrdering: config.commitOrder,
 				contextMenuActionsVisibility: config.contextMenuActionsVisibility,
@@ -767,6 +788,132 @@ export class GitGraphView extends Disposable {
 			</head>
 			${body}
 		</html>`;
+	}
+
+
+	/* Azure DevOps API Methods */
+
+	/**
+	 * Fetch work items from Azure DevOps using WIQL.
+	 * @param query An optional search string to filter work items by title.
+	 * @returns An array of AzureDevOpsWorkItem objects.
+	 */
+	private async getAzureDevOpsWorkItems(query?: string, assignedToMe?: boolean): Promise<AzureDevOpsWorkItem[]> {
+		const config = getConfig();
+		const url = config.azureDevOpsUrl;
+		const pat = config.azureDevOpsAccessToken;
+		if (!url || !pat) {
+			throw new Error('Azure DevOps URL and Access Token must be configured.');
+		}
+
+		const closedStates = config.azureDevOpsClosedStates;
+		const conditions: string[] = [];
+		if (assignedToMe) {
+			conditions.push('[System.AssignedTo] = @Me');
+		}
+		if (closedStates.length > 0) {
+			conditions.push('[System.State] NOT IN (' + closedStates.map((s) => '\'' + s.replace(/'/g, '\'\'' ) + '\'').join(',') + ')');
+		}
+		if (query) {
+			conditions.push('[System.Title] CONTAINS \'' + query.replace(/'/g, '\'\'' ) + '\'');
+		}
+		const whereClause = conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : '';
+		const wiql = 'SELECT [System.Id] FROM WorkItems' + whereClause + ' ORDER BY [System.ChangedDate] DESC';
+
+		// Parse the Azure DevOps URL
+		const urlMod = require('url');
+		const parsedUrl = urlMod.parse(url);
+		const pathParts = (parsedUrl.pathname || '').split('/').filter((p: string) => p.length > 0);
+		if (pathParts.length < 2) {
+			throw new Error('Invalid Azure DevOps URL. Expected format: https://dev.azure.com/org/project');
+		}
+		const org = pathParts[0];
+		const project = pathParts[1];
+
+		// Step 1: Execute WIQL query to get work item IDs
+		const wiqlResult = await this.azureDevOpsApiCall(
+			parsedUrl.hostname,
+			'/' + org + '/' + project + '/_apis/wit/wiql?api-version=7.0',
+			pat,
+			'POST',
+			JSON.stringify({ query: wiql })
+		);
+
+		const wiqlData = JSON.parse(wiqlResult);
+		if (!wiqlData.workItems || wiqlData.workItems.length === 0) {
+			return [];
+		}
+
+		// Limit to first 50 work items
+		const ids = wiqlData.workItems.slice(0, 50).map((wi: { id: number }) => wi.id);
+
+		// Step 2: Fetch work item details
+		const detailsResult = await this.azureDevOpsApiCall(
+			parsedUrl.hostname,
+			'/' + org + '/' + project + '/_apis/wit/workitems?ids=' + ids.join(',') + '&fields=System.Id,System.Title,System.WorkItemType,System.State&api-version=7.0',
+			pat,
+			'GET'
+		);
+
+		const detailsData = JSON.parse(detailsResult);
+		if (!detailsData.value) {
+			return [];
+		}
+
+		return detailsData.value.map((wi: any) => ({
+			id: wi.fields['System.Id'],
+			title: wi.fields['System.Title'],
+			type: wi.fields['System.WorkItemType'],
+			state: wi.fields['System.State']
+		}));
+	}
+
+	/**
+	 * Make an API call to Azure DevOps.
+	 * @param hostname The hostname of the Azure DevOps instance.
+	 * @param path The API path.
+	 * @param pat The Personal Access Token.
+	 * @param method The HTTP method.
+	 * @param body Optional request body.
+	 * @returns The response body as a string.
+	 */
+	private azureDevOpsApiCall(hostname: string, path: string, pat: string, method: string, body?: string): Promise<string> {
+		return new Promise((resolve, reject) => {
+			const auth = Buffer.from(':' + pat).toString('base64');
+			const options: https.RequestOptions = {
+				hostname: hostname,
+				path: path,
+				method: method,
+				headers: {
+					'Authorization': 'Basic ' + auth,
+					'Content-Type': 'application/json',
+					'User-Agent': 'vscode-git-graph'
+				},
+				agent: false,
+				timeout: 15000
+			};
+			if (body) {
+				options.headers!['Content-Length'] = Buffer.byteLength(body).toString();
+			}
+
+			const req = https.request(options, (res) => {
+				let respBody = '';
+				res.on('data', (chunk: Buffer) => { respBody += chunk; });
+				res.on('end', () => {
+					if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+						resolve(respBody);
+					} else {
+						reject(new Error('Azure DevOps API returned status ' + res.statusCode + ': ' + respBody));
+					}
+				});
+			});
+			req.on('error', (e) => reject(new Error('Azure DevOps API request failed: ' + e.message)));
+			req.on('timeout', () => { req.abort(); reject(new Error('Azure DevOps API request timed out')); });
+			if (body) {
+				req.write(body);
+			}
+			req.end();
+		});
 	}
 
 

@@ -424,7 +424,25 @@
 				"default": [],
 				"description": "Priority order for branch columns in the graph. Branches matching earlier patterns get leftmost columns. Supports glob patterns (e.g. [\"main\", \"develop\", \"feature/*\", \"release/*\"]). Unmatched branches appear after matched ones."
 			},
-			"git-graph.customBranchGlobPatterns": {
+							"git-graph.azureDevops.url": {
+					"type": "string",
+					"default": "",
+					"description": "Azure DevOps project URL (e.g. https://dev.azure.com/org/project). Required for work item integration."
+				},
+				"git-graph.azureDevops.accessToken": {
+					"type": "string",
+					"default": "",
+					"description": "Azure DevOps Personal Access Token (PAT) with Work Items read scope. Required for work item integration."
+				},
+				"git-graph.azureDevops.closedStates": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"default": ["Done", "Closed", "Removed"],
+					"description": "Work item states to exclude when fetching Azure DevOps work items."
+				},
+"git-graph.customBranchGlobPatterns": {
 					"type": "array",
 					"items": {
 						"type": "object",

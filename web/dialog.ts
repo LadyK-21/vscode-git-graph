@@ -13,7 +13,8 @@ const enum DialogInputType {
 	TextRef,
 	Select,
 	Radio,
-	Checkbox
+	Checkbox,
+	Textarea
 }
 
 interface DialogTextInput {
@@ -61,6 +62,15 @@ interface DialogCheckboxInput {
 	readonly info?: string;
 }
 
+interface DialogTextareaInput {
+	readonly type: DialogInputType.Textarea;
+	readonly name: string;
+	readonly default: string;
+	readonly placeholder: string | null;
+	readonly rows?: number;
+	readonly info?: string;
+}
+
 interface DialogSelectInputOption {
 	readonly name: string;
 	readonly value: string;
@@ -71,7 +81,7 @@ interface DialogRadioInputOption {
 	readonly value: string;
 }
 
-type DialogInput = DialogTextInput | DialogTextRefInput | DialogSelectInput | DialogRadioInput | DialogCheckboxInput;
+type DialogInput = DialogTextInput | DialogTextRefInput | DialogSelectInput | DialogRadioInput | DialogCheckboxInput | DialogTextareaInput;
 type DialogInputValue = string | string[] | boolean;
 
 type DialogTarget = {
@@ -212,6 +222,9 @@ class Dialog {
 					inputHtml = '<td class="inputCol"><div id="dialogFormSelect' + id + '"></div></td>' + (infoColRequired ? '<td>' + infoHtml + '</td>' : '');
 				} else if (input.type === DialogInputType.Checkbox) {
 					inputHtml = '<td class="inputCol"' + (infoColRequired ? ' colspan="2"' : '') + '><span class="dialogFormCheckbox"><label><input id="dialogInput' + id + '" type="checkbox"' + (input.value ? ' checked' : '') + ' tabindex="' + (id + 1) + '"/><span class="customCheckbox"></span>' + (multiElement && !multiCheckbox ? '' : input.name) + infoHtml + '</label></span></td>';
+				} else if (input.type === DialogInputType.Textarea) {
+					const rows = input.rows || 4;
+					inputHtml = '<td class="inputCol"><textarea id="dialogInput' + id + '" rows="' + rows + '"' + (input.placeholder !== null ? ' placeholder="' + escapeHtml(input.placeholder) + '"' : '') + ' tabindex="' + (id + 1) + '">' + escapeHtml(input.default) + '</textarea></td>' + (infoColRequired ? '<td>' + infoHtml + '</td>' : '');
 				} else {
 					inputHtml = '<td class="inputCol"><input id="dialogInput' + id + '" type="text" value="' + escapeHtml(input.default) + '"' + (input.type === DialogInputType.Text && input.placeholder !== null ? ' placeholder="' + escapeHtml(input.placeholder) + '"' : '') + ' tabindex="' + (id + 1) + '"/></td>' + (infoColRequired ? '<td>' + infoHtml + '</td>' : '');
 				}
@@ -285,7 +298,7 @@ class Dialog {
 			});
 		}
 
-		if (inputs.length > 0 && (inputs[0].type === DialogInputType.Text || inputs[0].type === DialogInputType.TextRef)) {
+		if (inputs.length > 0 && (inputs[0].type === DialogInputType.Text || inputs[0].type === DialogInputType.TextRef || inputs[0].type === DialogInputType.Textarea)) {
 			// If the first input is a text field, set focus to it.
 			(<HTMLInputElement>document.getElementById('dialogInput0')).focus();
 		}
