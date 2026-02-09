@@ -231,7 +231,20 @@ export interface GitGraphViewInitialState {
 	readonly loadCommitsRefreshId: number;
 }
 
+export interface AzureDevOpsConfig {
+	readonly enabled: boolean;
+	readonly closedStates: ReadonlyArray<string>;
+}
+
+export interface AzureDevOpsWorkItem {
+	readonly id: number;
+	readonly title: string;
+	readonly type: string;
+	readonly state: string;
+}
+
 export interface GitGraphViewConfig {
+	readonly azureDevOps: AzureDevOpsConfig;
 	readonly commitDetailsView: CommitDetailsViewConfig;
 	readonly commitOrdering: CommitOrdering;
 	readonly contextMenuActionsVisibility: ContextMenuActionsVisibility;
@@ -286,6 +299,7 @@ export interface GraphConfig {
 	readonly style: GraphStyle;
 	readonly grid: { x: number, y: number, offsetX: number, offsetY: number, expandY: number };
 	readonly uncommittedChanges: GraphUncommittedChangesStyle;
+	readonly branchColumnOrder: ReadonlyArray<string>;
 }
 
 export interface KeybindingConfig {
@@ -368,6 +382,7 @@ export interface ContextMenuActionsVisibility {
 		readonly reset: boolean;
 		readonly copyHash: boolean;
 		readonly copySubject: boolean;
+		readonly amendCommit: boolean;
 	};
 	readonly commitDetailsViewFile: {
 		readonly viewDiff: boolean;
@@ -594,6 +609,15 @@ export interface RequestAddRemote extends RepoRequest {
 }
 export interface ResponseAddRemote extends ResponseWithErrorInfo {
 	readonly command: 'addRemote';
+}
+
+export interface RequestAmendCommit extends RepoRequest {
+	readonly command: 'amendCommit';
+	readonly commitHash: string;
+	readonly message: string;
+}
+export interface ResponseAmendCommit extends ResponseWithErrorInfo {
+	readonly command: 'amendCommit';
 }
 
 export interface RequestAddTag extends RepoRequest {
@@ -1247,8 +1271,30 @@ export interface ResponseViewScm extends ResponseWithErrorInfo {
 	readonly command: 'viewScm';
 }
 
+export interface RequestGetAzureDevOpsWorkItems extends RepoRequest {
+	readonly command: 'getAzureDevOpsWorkItems';
+	readonly assignedToMe: boolean;
+}
+export interface ResponseGetAzureDevOpsWorkItems extends BaseMessage {
+	readonly command: 'getAzureDevOpsWorkItems';
+	readonly items: ReadonlyArray<AzureDevOpsWorkItem>;
+	readonly error: ErrorInfo;
+}
+
+export interface RequestSearchAzureDevOpsWorkItems extends RepoRequest {
+	readonly command: 'searchAzureDevOpsWorkItems';
+	readonly query: string;
+	readonly assignedToMe: boolean;
+}
+export interface ResponseSearchAzureDevOpsWorkItems extends BaseMessage {
+	readonly command: 'searchAzureDevOpsWorkItems';
+	readonly items: ReadonlyArray<AzureDevOpsWorkItem>;
+	readonly error: ErrorInfo;
+}
+
 export type RequestMessage =
 	RequestAddRemote
+	| RequestAmendCommit
 	| RequestAddTag
 	| RequestApplyStash
 	| RequestBranchFromStash
@@ -1309,10 +1355,13 @@ export type RequestMessage =
 	| RequestViewDiff
 	| RequestViewDiffWithWorkingFile
 	| RequestViewFileAtRevision
-	| RequestViewScm;
+	| RequestViewScm
+	| RequestGetAzureDevOpsWorkItems
+	| RequestSearchAzureDevOpsWorkItems;
 
 export type ResponseMessage =
 	ResponseAddRemote
+	| ResponseAmendCommit
 	| ResponseAddTag
 	| ResponseApplyStash
 	| ResponseBranchFromStash
@@ -1370,7 +1419,9 @@ export type ResponseMessage =
 	| ResponseViewDiff
 	| ResponseViewDiffWithWorkingFile
 	| ResponseViewFileAtRevision
-	| ResponseViewScm;
+	| ResponseViewScm
+	| ResponseGetAzureDevOpsWorkItems
+	| ResponseSearchAzureDevOpsWorkItems;
 
 
 /** Helper Types */

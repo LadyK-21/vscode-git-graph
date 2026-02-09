@@ -1122,6 +1122,20 @@ export class DataSource extends Disposable {
 		return this.runGitCommand(args, repo);
 	}
 
+	/**
+	 * Amend the message of the most recent commit (HEAD).
+	 * @param repo The path of the repository.
+	 * @param message The new commit message.
+	 * @returns The ErrorInfo from the executed command.
+	 */
+	public amendCommitMessage(repo: string, message: string) {
+		const args = ['commit', '--amend', '-m', message];
+		if (getConfig().signCommits) {
+			args.push('-S');
+		}
+		return this.runGitCommand(args, repo);
+	}
+
 
 	/* Git Action Methods - Config */
 

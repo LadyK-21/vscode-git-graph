@@ -429,6 +429,26 @@ class Graph {
 			this.vertices[commitLookup[commitHead]].setCurrent();
 		}
 
+		// Phase 1: Process priority branch tips first (if branchColumnOrder is configured)
+		if (this.config.branchColumnOrder && this.config.branchColumnOrder.length > 0) {
+			const tips: { index: number, priority: number }[] = [];
+			for (let ti = 0; ti < commits.length; ti++) {
+				if (commits[ti].heads.length > 0 && (this.vertices[ti].getNextParent() !== null || this.vertices[ti].isNotOnBranch())) {
+					const priority = this.getBranchTipPriority(ti, this.config.branchColumnOrder);
+					if (priority < Infinity) {
+						tips.push({ index: ti, priority: priority });
+					}
+				}
+			}
+			tips.sort((a, b) => a.priority - b.priority);
+			for (let ti = 0; ti < tips.length; ti++) {
+				if (this.vertices[tips[ti].index].getNextParent() !== null || this.vertices[tips[ti].index].isNotOnBranch()) {
+					this.determinePath(tips[ti].index);
+				}
+			}
+		}
+
+		// Phase 2: Normal loop (skips already-processed vertices)
 		i = 0;
 		while (i < this.vertices.length) {
 			if (this.vertices[i].getNextParent() !== null || this.vertices[i].isNotOnBranch()) {
@@ -770,6 +790,39 @@ class Graph {
 		}
 		this.availableColours.push(0);
 		return this.availableColours.length - 1;
+	}
+
+	/**
+	 * Get the priority of a branch tip based on branchColumnOrder patterns.
+	 * @param commitIndex The index of the commit to check.
+	 * @param branchOrder The ordered list of branch name patterns.
+	 * @returns The lowest matching priority index, or Infinity if no match.
+	 */
+	private getBranchTipPriority(commitIndex: number, branchOrder: ReadonlyArray<string>): number {
+		const heads = this.commits[commitIndex].heads;
+		let bestPriority = Infinity;
+		for (let h = 0; h < heads.length; h++) {
+			for (let p = 0; p < branchOrder.length; p++) {
+				if (this.globMatch(heads[h], branchOrder[p])) {
+					if (p < bestPriority) {
+						bestPriority = p;
+					}
+					break;
+				}
+			}
+		}
+		return bestPriority;
+	}
+
+	/**
+	 * Simple glob matching supporting * as wildcard for any characters.
+	 * @param name The string to test.
+	 * @param pattern The glob pattern (supports * wildcard).
+	 * @returns TRUE if the name matches the pattern.
+	 */
+	private globMatch(name: string, pattern: string): boolean {
+		const regex = '^' + pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$';
+		return new RegExp(regex).test(name);
 	}
 
 

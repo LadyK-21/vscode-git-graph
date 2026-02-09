@@ -104,6 +104,135 @@ body.vscode-high-contrast .dialog{
 	opacity:0.4;
 }
 
+.dialogContent > table.dialogForm textarea{
+	width:100%;
+	padding:4px 6px;
+	box-sizing:border-box;
+	outline-style:none;
+	background-color:rgba(128,128,128,0.1);
+	border:1px solid rgba(128,128,128,0.5);
+	border-radius:4px;
+	color:var(--vscode-menu-foreground);
+	font-family:var(--vscode-font-family);
+	font-size:13px;
+	line-height:17px;
+	resize:vertical;
+	min-height:80px;
+	white-space:pre-wrap;
+}
+.dialogContent > table.dialogForm textarea:focus{
+	border-color:var(--vscode-focusBorder);
+}
+.dialogContent > table.dialogForm textarea::placeholder{
+	color:var(--vscode-menu-foreground);
+	opacity:0.4;
+}
+
+.dialogContent.wideDialog{
+	max-width:480px;
+}
+.dialogContent.wideDialog > table.dialogForm{
+	width:480px;
+}
+
+.azureWorkItemsSection{
+	margin-top:10px;
+	padding-top:8px;
+	border-top:1px solid rgba(128,128,128,0.3);
+	text-align:left;
+}
+.azureWorkItemsHeader{
+	display:flex;
+	align-items:center;
+	justify-content:space-between;
+	margin-bottom:6px;
+}
+.azureWorkItemsHeader > span{
+	font-weight:bold;
+	font-size:12px;
+}
+.azureWorkItemsControls{
+	display:flex;
+	align-items:center;
+	gap:8px;
+}
+.azureAssignedToMeLabel{
+	display:flex;
+	align-items:center;
+	gap:3px;
+	font-size:11px;
+	cursor:pointer;
+	white-space:nowrap;
+}
+.azureWorkItemsControls input[type=text]{
+	width:150px;
+	padding:3px 6px;
+	box-sizing:border-box;
+	outline-style:none;
+	background-color:rgba(128,128,128,0.1);
+	border:1px solid rgba(128,128,128,0.5);
+	border-radius:4px;
+	color:var(--vscode-menu-foreground);
+	font-family:var(--vscode-font-family);
+	font-size:12px;
+	line-height:16px;
+}
+.azureWorkItemsControls input[type=text]:focus{
+	border-color:var(--vscode-focusBorder);
+}
+.azureWorkItemsControls input[type=text]::placeholder{
+	color:var(--vscode-menu-foreground);
+	opacity:0.4;
+}
+.azureWorkItemsList{
+	max-height:150px;
+	overflow-y:auto;
+}
+.azureWorkItemsList .loading{
+	display:block;
+	text-align:center;
+	padding:8px;
+	opacity:0.6;
+	font-size:12px;
+}
+.azureWorkItem{
+	display:flex;
+	align-items:center;
+	padding:3px 6px;
+	cursor:pointer;
+	border-radius:3px;
+	font-size:12px;
+	line-height:18px;
+	-webkit-user-select:none;
+	user-select:none;
+}
+.azureWorkItem:hover{
+	background-color:rgba(128,128,128,0.15);
+}
+.azureWorkItem.selected{
+	background-color:rgba(128,128,128,0.25);
+}
+.azureWorkItem .wiBadge{
+	display:inline-block;
+	padding:0 4px;
+	border-radius:3px;
+	font-size:10px;
+	line-height:16px;
+	margin-right:6px;
+	background-color:rgba(128,128,128,0.2);
+	white-space:nowrap;
+}
+.azureWorkItem .wiId{
+	margin-right:6px;
+	opacity:0.7;
+	white-space:nowrap;
+}
+.azureWorkItem .wiTitle{
+	overflow:hidden;
+	text-overflow:ellipsis;
+	white-space:nowrap;
+}
+
 .dialog .roundedBtn{
 	display:inline-block;
 	line-height:22px;

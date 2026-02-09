@@ -1,3 +1,113 @@
+let azureWorkItemDebounceTimer: number | null = null;
+let azureWorkItemsRepo: string = '';
+let selectedWorkItemIds: Set<number> = new Set();
+let azureAssignedToMe: boolean = true;
+
+function setupAzureDevOpsWorkItems(repo: string) {
+	if (!initialState.config.azureDevOps.enabled) return;
+
+	const dialogContent = document.querySelector('.dialogContent');
+	if (!dialogContent) return;
+	dialogContent.classList.add('wideDialog');
+
+	const actionBtn = document.getElementById('dialogAction') || document.getElementById('dialogSecondaryAction');
+	if (!actionBtn) return;
+
+	const section = document.createElement('div');
+	section.id = 'azureWorkItemsSection';
+	section.className = 'azureWorkItemsSection';
+	section.innerHTML = '<div class="azureWorkItemsHeader"><span>Azure DevOps Work Items</span><div class="azureWorkItemsControls"><label class="azureAssignedToMeLabel"><input id="azureAssignedToMe" type="checkbox" checked tabindex="98" />Assigned to me</label><input id="azureWorkItemSearch" type="text" placeholder="Search work items..." tabindex="99" /></div></div><div id="azureWorkItemsList" class="azureWorkItemsList"><span class="loading">Loading...</span></div>';
+
+	const brBefore = actionBtn.previousElementSibling;
+	if (brBefore && brBefore.tagName === 'BR') {
+		dialogContent.insertBefore(section, brBefore);
+	} else {
+		dialogContent.insertBefore(section, actionBtn);
+	}
+
+	selectedWorkItemIds = new Set();
+	azureAssignedToMe = true;
+	azureWorkItemsRepo = repo;
+	sendMessage({ command: 'getAzureDevOpsWorkItems', repo: repo, assignedToMe: azureAssignedToMe });
+
+	const searchInput = document.getElementById('azureWorkItemSearch');
+	if (searchInput) {
+		searchInput.addEventListener('input', () => {
+			if (azureWorkItemDebounceTimer !== null) window.clearTimeout(azureWorkItemDebounceTimer);
+			azureWorkItemDebounceTimer = window.setTimeout(() => {
+				const query = (<HTMLInputElement>searchInput).value.trim();
+				const listElem = document.getElementById('azureWorkItemsList');
+				if (listElem) listElem.innerHTML = '<span class="loading">Searching...</span>';
+				if (query.length > 0) {
+					sendMessage({ command: 'searchAzureDevOpsWorkItems', repo: azureWorkItemsRepo, query: query, assignedToMe: azureAssignedToMe });
+				} else {
+					sendMessage({ command: 'getAzureDevOpsWorkItems', repo: azureWorkItemsRepo, assignedToMe: azureAssignedToMe });
+				}
+			}, 400);
+		});
+	}
+
+	const assignedToMeCheckbox = document.getElementById('azureAssignedToMe');
+	if (assignedToMeCheckbox) {
+		assignedToMeCheckbox.addEventListener('change', () => {
+			azureAssignedToMe = (<HTMLInputElement>assignedToMeCheckbox).checked;
+			const listElem = document.getElementById('azureWorkItemsList');
+			if (listElem) listElem.innerHTML = '<span class="loading">Loading...</span>';
+			const searchVal = <HTMLInputElement | null>document.getElementById('azureWorkItemSearch');
+			const query = searchVal ? searchVal.value.trim() : '';
+			if (query.length > 0) {
+				sendMessage({ command: 'searchAzureDevOpsWorkItems', repo: azureWorkItemsRepo, query: query, assignedToMe: azureAssignedToMe });
+			} else {
+				sendMessage({ command: 'getAzureDevOpsWorkItems', repo: azureWorkItemsRepo, assignedToMe: azureAssignedToMe });
+			}
+		});
+	}
+}
+
+function renderAzureDevOpsWorkItems(items: ReadonlyArray<GG.AzureDevOpsWorkItem>, error: GG.ErrorInfo) {
+	const listElem = document.getElementById('azureWorkItemsList');
+	if (!listElem) return;
+
+	if (error !== null) {
+		listElem.innerHTML = '<span class="loading">' + escapeHtml(error) + '</span>';
+		return;
+	}
+
+	if (items.length === 0) {
+		listElem.innerHTML = '<span class="loading">No work items found</span>';
+		return;
+	}
+
+	listElem.innerHTML = items.map((item) => {
+		const isSelected = selectedWorkItemIds.has(item.id);
+		return '<div class="azureWorkItem' + (isSelected ? ' selected' : '') + '" data-wi-id="' + item.id + '" data-wi-title="' + escapeHtml(item.title) + '" data-wi-type="' + escapeHtml(item.type) + '"><span class="wiBadge">' + escapeHtml(item.type) + '</span><span class="wiId">#' + item.id + '</span><span class="wiTitle">' + escapeHtml(item.title) + '</span></div>';
+	}).join('');
+
+	listElem.querySelectorAll('.azureWorkItem').forEach((elem) => {
+		elem.addEventListener('click', () => {
+			const wiId = parseInt((<HTMLElement>elem).dataset.wiId || '0');
+			const wiTitle = (<HTMLElement>elem).dataset.wiTitle || '';
+			const wiType = (<HTMLElement>elem).dataset.wiType || '';
+			const textarea = <HTMLTextAreaElement | null>document.getElementById('dialogInput0');
+			if (!textarea || !wiId) return;
+			// eslint-disable-next-line no-console
+
+			const lineToAdd = wiType + ' #' + wiId + ' - ' + wiTitle;
+			if (selectedWorkItemIds.has(wiId)) {
+				selectedWorkItemIds.delete(wiId);
+				(<HTMLElement>elem).classList.remove('selected');
+				const lines = textarea.value.split('\n').filter((l) => l !== lineToAdd);
+				textarea.value = lines.join('\n');
+			} else {
+				selectedWorkItemIds.add(wiId);
+				(<HTMLElement>elem).classList.add('selected');
+				textarea.value = textarea.value.replace(/s+$/, '') + '\n' + lineToAdd;
+			}
+		});
+	});
+}
+
+
 class GitGraphView {
 	private gitRepos: GG.GitRepoSet;
 	private gitBranches: ReadonlyArray<string> = [];
@@ -1217,6 +1327,26 @@ class GitGraphView {
 						runAction({ command: 'resetToCommit', repo: this.currentRepo, commit: hash, resetMode: <GG.GitResetMode>mode }, 'Resetting to Commit');
 					}, target);
 				}
+			}, {
+				title: 'Edit Commit Message' + ELLIPSIS,
+				visible: visibility.amendCommit && hash === this.commitHead,
+				onClick: () => {
+					dialog.showForm('Edit the commit message for <b><i>' + abbrevCommit(hash) + '</i></b>:', [{
+						type: DialogInputType.Textarea,
+						name: 'Message',
+						default: commit.message,
+						placeholder: 'Commit message',
+						rows: 6
+					}], 'Amend', (values) => {
+						runAction({
+							command: 'amendCommit',
+							repo: this.currentRepo,
+							commitHash: hash,
+							message: <string>values[0]
+						}, 'Amending Commit Message');
+					}, target);
+					setupAzureDevOpsWorkItems(this.currentRepo);
+				}
 			}
 		], [
 			{
@@ -2035,6 +2165,10 @@ class GitGraphView {
 					handledEvent(e);
 				} else if (e.keyCode ? e.keyCode === 13 : e.key === 'Enter') {
 					// Use keyCode === 13 to detect 'Enter' events if available (for compatibility with IME Keyboards used by Chinese / Japanese / Korean users)
+					if (document.activeElement && document.activeElement.tagName === 'TEXTAREA') {
+						// Allow Enter to insert a newline in textareas
+						return;
+					}
 					dialog.submit();
 					handledEvent(e);
 				}
@@ -3195,6 +3329,9 @@ window.addEventListener('load', () => {
 			case 'addRemote':
 				refreshOrDisplayError(msg.error, 'Unable to Add Remote', true);
 				break;
+			case 'amendCommit':
+				refreshOrDisplayError(msg.error, 'Unable to Amend Commit Message');
+				break;
 			case 'addTag':
 				if (msg.pushToRemote !== null && msg.errors.length === 2 && msg.errors[0] === null && isExtensionErrorInfo(msg.errors[1], GG.ErrorInfoExtensionPrefix.PushTagCommitNotOnRemote)) {
 					gitGraph.refresh(false);
@@ -3411,6 +3548,12 @@ window.addEventListener('load', () => {
 				break;
 			case 'viewScm':
 				finishOrDisplayError(msg.error, 'Unable to open the Source Control View');
+				break;
+			case 'getAzureDevOpsWorkItems':
+				renderAzureDevOpsWorkItems(msg.items, msg.error);
+				break;
+			case 'searchAzureDevOpsWorkItems':
+				renderAzureDevOpsWorkItems(msg.items, msg.error);
 				break;
 		}
 	});
